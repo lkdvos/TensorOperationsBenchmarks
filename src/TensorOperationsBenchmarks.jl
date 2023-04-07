@@ -2,8 +2,6 @@ module TensorOperationsBenchmarks
 
 using BenchmarkTools
 using TensorOperations
-using DataFrames
-using Statistics
 using DrWatson: recursively_clear_path
 
 const PARAMS_PATH = joinpath(dirname(@__FILE__), "..", "etc", "params.json")
