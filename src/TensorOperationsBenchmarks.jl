@@ -2,16 +2,13 @@ module TensorOperationsBenchmarks
 
 using BenchmarkTools
 
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 1.0
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 10000
-BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.15
-BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01
-
 const PARAMS_PATH = joinpath(dirname(@__FILE__), "..", "etc", "params.json")
 const SUITE = BenchmarkGroup()
 const MODULES = Dict(
     "contract" => :ContractBenchmarks,
 )
+
+include("contract/ContractBenchmarks.jl")
 
 """
     load!([group::BenchmarkGroup], id::AbstractString; tune=true)
@@ -19,11 +16,9 @@ const MODULES = Dict(
 Load a benchmark group. If `tune` is `true`, also load the precomputed benchmark parameters.
 """
 load!(id::AbstractString; kwargs...) = load!(SUITE, id; kwargs...)
-function load!(group::BenchmarkGroup, id::AbstractString; tune::Bool=true)
+function load!(group::BenchmarkGroup, id::AbstractString; tune::Bool=true, kwargs...)
     modsym = MODULES[id]
-    modpath = joinpath(dirname(@__FILE__), id, "$(modsym).jl")
-    Core.eval(TensorOperationsBenchmarks, :(include($modpath)))
-    modsuite = Core.eval(TensorOperationsBenchmarks, modsym).SUITE
+    modsuite = Core.eval(TensorOperationsBenchmarks, modsym).generate_benchmarks(; kwargs...)
     group[id] = modsuite
     if tune
         results = BenchmarkTools.load(PARAMS_PATH)[1]
@@ -55,6 +50,13 @@ function loadall!(group::BenchmarkGroup; verbose::Bool=true, tune::Bool=true)
         end
     end
     return group
+end
+
+function __init__()
+    BenchmarkTools.DEFAULT_PARAMETERS.seconds = 10
+    BenchmarkTools.DEFAULT_PARAMETERS.samples = 1000
+    BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.15
+    BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01
 end
 
 end
