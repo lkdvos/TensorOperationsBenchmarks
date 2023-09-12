@@ -1,23 +1,27 @@
 module TensorOperationsBenchmarks
 
 using BenchmarkTools
-using TensorOperations
-using DrWatson: recursively_clear_path
+
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 1.0
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 10000
+BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.15
+BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01
 
 const PARAMS_PATH = joinpath(dirname(@__FILE__), "..", "etc", "params.json")
-const RESULTS_PATH = joinpath(dirname(@__FILE__), "..", "etc")
 const SUITE = BenchmarkGroup()
 const MODULES = Dict(
-    # "permutations" => :PermutationBenchmarks,
-    # "mps" => :MpsBenchmarks,
-    "tensorkit" => :TensorKitBenchmarks,
+    "contract" => :ContractBenchmarks,
 )
 
-load!(id::AbstractString; kwargs...) = load!(SUITE, id; kwargs...)
+"""
+    load!([group::BenchmarkGroup], id::AbstractString; tune=true)
 
+Load a benchmark group. If `tune` is `true`, also load the precomputed benchmark parameters.
+"""
+load!(id::AbstractString; kwargs...) = load!(SUITE, id; kwargs...)
 function load!(group::BenchmarkGroup, id::AbstractString; tune::Bool=true)
     modsym = MODULES[id]
-    modpath = joinpath(dirname(@__FILE__), "$(modsym).jl")
+    modpath = joinpath(dirname(@__FILE__), id, "$(modsym).jl")
     Core.eval(TensorOperationsBenchmarks, :(include($modpath)))
     modsuite = Core.eval(TensorOperationsBenchmarks, modsym).SUITE
     group[id] = modsuite
@@ -28,14 +32,18 @@ function load!(group::BenchmarkGroup, id::AbstractString; tune::Bool=true)
     return group
 end
 
-loadall!(; kwargs...) = loadall!(SUITE; kwargs...)
+"""
+    loadall!([group::BenchmarkGroup]; tune=true)
 
-function loadall!(group::BenchmarkGroup; verbose::Bool=true, tune::Bool=false)
+Load all benchmark groups. If `tune` is `true`, also load the precomputed benchmark parameters.
+"""
+loadall!(; kwargs...) = loadall!(SUITE; kwargs...)
+function loadall!(group::BenchmarkGroup; verbose::Bool=true, tune::Bool=true)
     for id in keys(MODULES)
         if verbose
-            @info "loading group $(repr(id))... "
+            print("loading group $(repr(id))... ")
             time = @elapsed load!(group, id, tune=false)
-            @info "done (took $time seconds)"
+            println("done (took $time seconds)")
         else
             load!(group, id, tune=false)
         end
@@ -48,17 +56,5 @@ function loadall!(group::BenchmarkGroup; verbose::Bool=true, tune::Bool=false)
     end
     return group
 end
-
-function generate_data(group::BenchmarkGroup=SUITE, filename="results.json";
-    filepath=RESULTS_PATH, verbose=true, force=false)
-    file = joinpath(filepath, filename)
-    !force && isfile(file) && return BenchmarkTools.load(file)
-    results = BenchmarkTools.run(group; verbose=verbose)
-    recursively_clear_path(file)
-    BenchmarkTools.save(file, results)
-    return results
-end
-
-
 
 end
