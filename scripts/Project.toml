@@ -1,0 +1,4 @@
+[deps]
+MKL = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
+TensorOperationsBenchmarks = "2b359211-de9c-4922-b7d7-f0b5b1974f98"
+ThreadPinning = "811555cd-349b-4f26-b7bc-1f208b848042"

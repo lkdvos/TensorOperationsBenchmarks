@@ -1,46 +1,17 @@
-using TensorOperationsBenchmarks: TensorOperationsBenchmarks as TOB
-using TensorOperations
-using Strided
-using TBLIS
+result_path = joinpath(@__DIR__, "..", "data", endswith(ARGS[1], ".json") ? ARGS[1] : "$(ARGS[1]).json")
 
-TOB.loadall!()
-const THREAD_NUMBERS = (8, 4, 1)
+# Setup
+# -----
+using MKL, ThreadPinning
+using LinearAlgebra; BLAS.set_num_threads(1)
+ThreadPinning.mkl_set_dynamic(false)
+pinthreads(:cores)
+threadinfo(; blas=true, hints=true)
 
-
-## Strided without blas, no cache
-useblas = false
-allocationbackend!(JuliaAllocator())
-operationbackend!(StridedBackend(useblas))
-
-for t in THREAD_NUMBERS
-    Strided.set_num_threads(t)
-    TOB.generate_data(TOB.SUITE, "Strided($useblas)_t$t.json")
-end
-
-## Strided without blas, with cache
-useblas = false
-allocationbackend!(TensorCache())
-operationbackend!(StridedBackend(useblas))
-
-for t in THREAD_NUMBERS
-    Strided.set_num_threads(t)
-    TOB.generate_data(TOB.SUITE, "Strided($useblas)_cached_t$t.json")
-end
-
-## TBLIS, no cache
-allocationbackend!(JuliaAllocator())
-operationbackend!(TBLISBackend())
-
-for t in THREAD_NUMBERS
-    TBLIS.set_num_threads(t)
-    TOB.generate_data(TOB.SUITE, "TBLIS_t$t.json")
-end
-
-## TBLIS, with cache
-allocationbackend!(TensorCache())
-operationbackend!(TBLISBackend())
-
-for t in THREAD_NUMBERS
-    TBLIS.set_num_threads(t)
-    TOB.generate_data(TOB.SUITE, "TBLIS_cached_t$t.json")
-end
+# Load and run benchmarks
+# -----------------------
+import TensorOperationsBenchmarks as TOB
+using BenchmarkTools
+suite = TOB.loadall!(; tune=false)
+result = run(suite; verbose=true)
+BenchmarkTools.save(result_path, result)
