@@ -18,7 +18,7 @@ function extract_sizes(contraction::AbstractString, sizes::Dict{String,Int})
     return szA, szB, szC
 end
 
-for line in Iterators.take(eachline(CONTRACTIONS_PATH), 5)
+for line in eachline(CONTRACTIONS_PATH)
     contraction, sizes = split(line, " & ")
     contract_expr = Meta.parse(contraction)
     
